@@ -1,4 +1,6 @@
-const debug = require('debug')('groupme-push-client:push-client');
+const debug = require('debug');
+const debugVerbose = debug('verbose:matrix-puppet:groupme:client');
+const debugEmit = debug('matrix-puppet:groupme:client:emit');
 const WebSocket = require('ws');
 const EventEmitter = require('events').EventEmitter;
 const { get, post } = require('axios');
@@ -26,6 +28,9 @@ class RestClient {
   }
   getGroups() {
     return get(this.url('groups')).then(resolveData);
+  }
+  getChats() {
+    return get(this.url('chats')).then(resolveData);
   }
   getGroupMessages(id) {
     return get(this.url(`groups/${id}/messages`)).then(resolveData);
@@ -58,8 +63,8 @@ class Client {
     this.ws.on('message', (jsonString, _flags) => {
       let data = JSON.parse(jsonString)[0];
       let ch = this.channels[data.channel];
-      debug('got data', data);
-      ch ? ch.handle(data) : debug('unhandled message', data);
+      debugVerbose('got data', data);
+      ch ? ch.handle(data) : debugVerbose('unhandled message', data);
     });
     return new Promise((resolve, _reject) => {
       this.ws.on('open', () => resolve(this._handshake()));
@@ -68,7 +73,7 @@ class Client {
   send(msg) {
     let obj = Object.assign({}, msg, {id: ++this.msgId});
     this.ws.send(JSON.stringify(obj));
-    debug('sent data', obj);
+    debugVerbose('sent data', obj);
   }
   _handshake() {
     return new Promise((resolve, reject) => {
@@ -98,6 +103,7 @@ class Client {
               handle: (msg)=>{
                 const { data } = msg;
                 if ( data && data.type ) {
+                  debugEmit('emitting', data.type, data);
                   emitter.emit(data.type, data);
                 }
               }

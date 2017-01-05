@@ -15,29 +15,53 @@ class App extends MatrixPuppetBridgeBase {
     return "groupme";
   }
   initThirdPartyClient() {
+    this.directChats = {};
     this.thirdPartyClient = new GroupMeClient(this.config.groupme.accessToken);
     return this.thirdPartyClient.connect().then(() => {
       return this.thirdPartyClient.api.getMe();
     }).then(user => {
       return this.thirdPartyClient.subscribe(`/user/${user.id}`).then(userSub => {
+
         console.log('Subscribed to GroupMe user messages');
+
         userSub.on('line.create', (data) => {
-          const { subject: { id, group_id, user_id, text, name } } = data;
+          const { subject: { group_id, user_id, text, name } } = data;
           return this.handleThirdPartyRoomMessage({
             roomId: group_id,
-            messageId: id,
             senderName: name,
             senderId: user_id === user.id ? undefined : user_id,
             text
+          }).catch(err => {
+            console.error(err.stack);
+          });
+        });
+
+        userSub.on('direct_message.create', (data) => {
+          const { subject: { chat_id, sender_id, text } } = data;
+          this.directChats[chat_id] = true;
+          return this.handleThirdPartyRoomMessage({
+            roomId: chat_id,
+            senderId: sender_id === user.id ? undefined : sender_id,
+            text
+          }).catch(err => {
+            console.error(err.stack);
           });
         });
       });
     });
   }
   getThirdPartyRoomDataById(id) {
-    return this.thirdPartyClient.api.showGroup(id).then(data=>({
-      name: data.name, topic: data.description
-    }));
+    if (this.directChats[id]) {
+      return this.thirdPartyClient.api.getChats(id).then(chats=>{
+        return chats.find(c=>c.last_message.conversation_id === id);
+      }).then(chat=>({
+        name: chat.other_user.name, topic: 'GroupMe Direct Message'
+      }));
+    } else {
+      return this.thirdPartyClient.api.showGroup(id).then(data=>({
+        name: data.name, topic: data.description
+      }));
+    }
   }
   sendMessageAsPuppetToThirdPartyRoomWithId(id, text) {
     return this.thirdPartyClient.api.sendGroupMessage(id)(text);
