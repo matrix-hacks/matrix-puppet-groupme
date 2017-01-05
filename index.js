@@ -15,43 +15,43 @@ class App extends MatrixPuppetBridgeBase {
     return "groupme";
   }
   initThirdPartyClient() {
-    this.directChats = {};
+    this.userId = null;
     this.thirdPartyClient = new GroupMeClient(this.config.groupme.accessToken);
     return this.thirdPartyClient.connect().then(() => {
       return this.thirdPartyClient.api.getMe();
     }).then(user => {
-      return this.thirdPartyClient.subscribe(`/user/${user.id}`).then(userSub => {
-
-        console.log('Subscribed to GroupMe user messages');
-
-        userSub.on('line.create', (data) => {
-          const { subject: { group_id, user_id, text, name } } = data;
-          return this.handleThirdPartyRoomMessage({
-            roomId: group_id,
-            senderName: name,
-            senderId: user_id === user.id ? undefined : user_id,
-            text
-          }).catch(err => {
-            console.error(err.stack);
-          });
+      this.userId = user.id;
+      return this.thirdPartyClient.subscribe(`/user/${user.id}`);
+    }).then(userSub => {
+      console.log('Subscribed to GroupMe user messages');
+      userSub.on('line.create', (data) => {
+        const { subject: { group_id, user_id, text, name } } = data;
+        const isMe = user_id === this.userId;
+        return this.handleThirdPartyRoomMessage({
+          roomId: group_id,
+          senderName: name,
+          senderId: isMe ? undefined : user_id,
+          text
+        }).catch(err => {
+          console.error(err.stack);
         });
-
-        userSub.on('direct_message.create', (data) => {
-          const { subject: { chat_id, sender_id, text } } = data;
-          this.directChats[chat_id] = true;
-          return this.handleThirdPartyRoomMessage({
-            roomId: chat_id,
-            senderId: sender_id === user.id ? undefined : sender_id,
-            text
-          }).catch(err => {
-            console.error(err.stack);
-          });
+      });
+      userSub.on('direct_message.create', (data) => {
+        const { subject: { chat_id, sender_id, text, name } } = data;
+        const isMe = sender_id === this.userId;
+        return this.handleThirdPartyRoomMessage({
+          roomId: chat_id,
+          senderName: isMe ? undefined : name,
+          senderId: isMe ? undefined : sender_id,
+          text
+        }).catch(err => {
+          console.error(err.stack);
         });
       });
     });
   }
   getThirdPartyRoomDataById(id) {
-    if (this.directChats[id]) {
+    if (this.isDirectChat(id)) {
       return this.thirdPartyClient.api.getChats(id).then(chats=>{
         return chats.find(c=>c.last_message.conversation_id === id);
       }).then(chat=>({
@@ -63,8 +63,19 @@ class App extends MatrixPuppetBridgeBase {
       }));
     }
   }
+  isDirectChat(id){
+    return id.split('+').length > 1;
+  }
+  getRecipientFromDirectChatId(cid){
+    return cid.split('+').filter(id => id !== this.userId)[0];
+  }
   sendMessageAsPuppetToThirdPartyRoomWithId(id, text) {
-    return this.thirdPartyClient.api.sendGroupMessage(id)(text);
+    if (this.isDirectChat(id)) {
+      const rid = this.getRecipientFromDirectChatId(id);
+      return this.thirdPartyClient.api.sendDirectMessage(rid)(text);
+    } else {
+      return this.thirdPartyClient.api.sendGroupMessage(id)(text);
+    }
   }
 }
 

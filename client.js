@@ -38,10 +38,17 @@ class RestClient {
   // TODO Attachment support
   // https://dev.groupme.com/docs/v3#messages_create
   sendGroupMessage(id) {
-    let guid = Math.random().toString(16).substring(2);
+    let source_guid = Math.random().toString(16).substring(2);
     let url = this.url(`groups/${id}/messages`);
     return (text) => post(url, {
-      message: { source_guid: guid, text }
+      message: { source_guid, text }
+    });
+  }
+  sendDirectMessage(recipient_id) {
+    let source_guid = Math.random().toString(16).substring(2);
+    let url = this.url(`direct_messages`);
+    return (text) => post(url, {
+      direct_message: { recipient_id, source_guid, text }
     });
   }
 }
