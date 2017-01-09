@@ -1,6 +1,4 @@
-const debug = require('debug');
-const debugVerbose = debug('verbose:matrix-puppet:groupme:client');
-const debugEmit = debug('matrix-puppet:groupme:client:emit');
+const debug = require('debug')('matrix-puppet:groupme:client');
 const WebSocket = require('ws');
 const EventEmitter = require('events').EventEmitter;
 const { get, post } = require('axios');
@@ -66,21 +64,31 @@ class Client {
     this.channels = {};
   }
   connect() {
+    debug('creating websocket');
     this.ws = new WebSocket('wss://push.groupme.com/faye');
+    debug('websocket created');
     this.ws.on('message', (jsonString, _flags) => {
       let data = JSON.parse(jsonString)[0];
       let ch = this.channels[data.channel];
-      debugVerbose('got data', data);
-      ch ? ch.handle(data) : debugVerbose('unhandled message', data);
+      debug('got data', data);
+      ch ? ch.handle(data) : debug('unhandled message', data);
     });
+
+    this.ws.on('close', () => {
+      debug('disconnected');
+      this.connect();
+    });
+
     return new Promise((resolve, _reject) => {
       this.ws.on('open', () => resolve(this._handshake()));
     });
   }
   send(msg) {
     let obj = Object.assign({}, msg, {id: ++this.msgId});
-    this.ws.send(JSON.stringify(obj));
-    debugVerbose('sent data', obj);
+    this.ws.send(JSON.stringify(obj), (err) => {
+      if (err) debug('websocket send error', err);
+      else debug('websocket sent successfully', obj);
+    });
   }
   _handshake() {
     return new Promise((resolve, reject) => {
@@ -110,7 +118,6 @@ class Client {
               handle: (msg)=>{
                 const { data } = msg;
                 if ( data && data.type ) {
-                  debugEmit('emitting', data.type, data);
                   emitter.emit(data.type, data);
                 }
               }
