@@ -23,6 +23,38 @@ class App extends MatrixPuppetBridgeBase {
       this.userId = user.id;
       return this.thirdPartyClient.subscribe(`/user/${user.id}`);
     }).then(userSub => {
+
+      const keepalive = () => {
+        let lastPing = new Date().getTime();
+
+        const ping = (intime) => {
+          setTimeout(()=>{
+            lastPing = new Date().getTime();
+            userSub.send({type:'ping'});
+            setTimeout(()=>{
+              // XXX
+            }, checkAlive)
+          }, intime);
+        };
+
+        ping();
+
+        userSub.on('ping', ()=>{
+          const now = new Date().getTime();
+          let delta = getPingDelta()
+          lastPing = now;
+          console.log('ping delta', pingDelta);
+
+          ping(5000);
+        });
+
+
+        setInterval()
+      };
+
+      keepalive();
+
+
       console.log('Subscribed to GroupMe user messages');
       userSub.on('line.create', (data) => {
         const { subject: { group_id, user_id, text, name } } = data;

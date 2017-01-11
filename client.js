@@ -51,7 +51,21 @@ class RestClient {
   }
 }
 
-class Subscription extends EventEmitter {}
+class Subscription extends EventEmitter {
+  constructor(client, channel) {
+    super();
+    this.client = client;
+    this.channel = channel;
+  }
+  send(data) {
+    this.client.ws.send(JSON.stringify({
+      channel: this.channel, data,
+      clientId: this.client.clientId,
+      id: ++this.client.msgId,
+      ext: { access_token: this.client.token }
+    }));
+  }
+}
 
 // https://dev.groupme.com/tutorials/push
 class Client {
@@ -112,7 +126,7 @@ class Client {
         handle: (data) => {
           const {successful} = data;
           if ( successful ) {
-            const emitter = new Subscription();
+            const emitter = new Subscription(this, subName);
             this.channels[subName] = {
               emitter,
               handle: (msg)=>{
