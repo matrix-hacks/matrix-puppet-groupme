@@ -10,6 +10,34 @@ const config = require('./config.json');
 const path = require('path');
 const puppet = new Puppet(path.join(__dirname, './config.json' ));
 
+const debug = require('debug')('matrix-puppet:keepalive');
+const keepalive = ({ ping, reconnect }) => {
+  const now = () => new Date().getTime();
+  let lastPingTx = now();
+  let lastPingRx = now();
+
+  const pid = setInterval(() => {
+    const ts = now() - lastPingRx;
+    debug('time since last contact', ts);
+    if (ts > 30000) {
+      debug('been too long, pinging');
+      lastPingTx = now();
+      ping();
+    } else if (ts > 50000) {
+      debug('been too long, reconnecting');
+      clearInterval(pid);
+      reconnect();
+    }
+  }, 5000);
+
+  return () => {
+    lastPingRx = now();
+    const lastPingDiff = lastPingRx - lastPingTx;
+    debug('got reply in', lastPingDiff);
+  };
+};
+
+
 class App extends MatrixPuppetBridgeBase {
   getServicePrefix() {
     return "groupme";
@@ -24,36 +52,16 @@ class App extends MatrixPuppetBridgeBase {
       return this.thirdPartyClient.subscribe(`/user/${user.id}`);
     }).then(userSub => {
 
-      const keepalive = () => {
-        let lastPing = new Date().getTime();
-
-        const ping = (intime) => {
-          setTimeout(()=>{
-            lastPing = new Date().getTime();
-            userSub.send({type:'ping'});
-            setTimeout(()=>{
-              // XXX
-            }, checkAlive)
-          }, intime);
-        };
-
-        ping();
-
-        userSub.on('ping', ()=>{
-          const now = new Date().getTime();
-          let delta = getPingDelta()
-          lastPing = now;
-          console.log('ping delta', pingDelta);
-
-          ping(5000);
-        });
-
-
-        setInterval()
-      };
-
-      keepalive();
-
+      userSub.on('ping', keepalive({
+        ping: () => {
+          debug('ping out');
+          userSub.send({type:'ping'});
+        },
+        reconnect: () => {
+          debug('reconnect issued');
+          this.thirdPartyClient.ws.close();
+        }
+      }));
 
       console.log('Subscribed to GroupMe user messages');
       userSub.on('line.create', (data) => {

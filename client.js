@@ -116,7 +116,7 @@ class Client {
       this.send({
         "channel":"/meta/handshake",
         "version":"1.0",
-        "supportedConnectionTypes":["callback-polling"]
+        "supportedConnectionTypes":["websocket"]
       });
     });
   }
