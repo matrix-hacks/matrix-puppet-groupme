@@ -13,28 +13,30 @@ const puppet = new Puppet(path.join(__dirname, './config.json' ));
 const debug = require('debug')('matrix-puppet:keepalive');
 const keepalive = ({ ping, reconnect }) => {
   const now = () => new Date().getTime();
-  let lastPingTx = now();
   let lastPingRx = now();
 
-  const pid = setInterval(() => {
+  const run = () => {
     const ts = now() - lastPingRx;
     debug('time since last contact', ts);
     if (ts > 30000) {
       debug('been too long, pinging');
-      lastPingTx = now();
-      ping();
+      ping().then(({time}) => {
+        debug('got reply in', time);
+        lastPingRx = now();
+        setTimeout(run, 5000);
+      }).catch(()=>{
+        debug('ping timeout! reconnecting', reconnect);
+        reconnect();
+      });
     } else if (ts > 50000) {
       debug('been too long, reconnecting');
-      clearInterval(pid);
       reconnect();
+    } else {
+      setTimeout(run, 5000);
     }
-  }, 5000);
-
-  return () => {
-    lastPingRx = now();
-    const lastPingDiff = lastPingRx - lastPingTx;
-    debug('got reply in', lastPingDiff);
   };
+
+  run();
 };
 
 
@@ -52,16 +54,14 @@ class App extends MatrixPuppetBridgeBase {
       return this.thirdPartyClient.subscribe(`/user/${user.id}`);
     }).then(userSub => {
 
-      userSub.on('ping', keepalive({
-        ping: () => {
-          debug('ping out');
-          userSub.send({type:'ping'});
-        },
+
+      keepalive({
+        ping: () => userSub.send({ type: 'ping' }, 30000),
         reconnect: () => {
           debug('reconnect issued');
           this.thirdPartyClient.ws.close();
         }
-      }));
+      });
 
       console.log('Subscribed to GroupMe user messages');
       userSub.on('line.create', (data) => {

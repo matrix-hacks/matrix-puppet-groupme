@@ -57,13 +57,29 @@ class Subscription extends EventEmitter {
     this.client = client;
     this.channel = channel;
   }
-  send(data) {
-    this.client.ws.send(JSON.stringify({
-      channel: this.channel, data,
-      clientId: this.client.clientId,
-      id: ++this.client.msgId,
-      ext: { access_token: this.client.token }
-    }));
+  handleMessage(msg) {
+    const { id, data } = msg;
+    if ( data ) {
+      if ( data.type ) {
+        this.emit(data.type, data);
+      }
+      if ( id ) {
+        this.emit('reply:'+id, data);
+      }
+    }
+  }
+  send(data, timeout=30000) {
+    const now = () => new Date().getTime();
+    const start = now();
+    return new Promise((resolve, reject) => {
+      setTimeout(()=>reject(new Error('timed out')), timeout);
+      let id = this.client.send({
+        channel: this.channel, data,
+        clientId: this.client.clientId,
+        ext: { access_token: this.client.token }
+      });
+      this.once('reply:'+id, ()=> resolve({data, time:now()-start}));
+    });
   }
 }
 
@@ -103,6 +119,7 @@ class Client {
       if (err) debug('websocket send error', err);
       else debug('websocket sent successfully', obj);
     });
+    return obj.id;
   }
   _handshake() {
     return new Promise((resolve, reject) => {
@@ -129,12 +146,7 @@ class Client {
             const emitter = new Subscription(this, subName);
             this.channels[subName] = {
               emitter,
-              handle: (msg)=>{
-                const { data } = msg;
-                if ( data && data.type ) {
-                  emitter.emit(data.type, data);
-                }
-              }
+              handle: emitter.handleMessage.bind(emitter)
             };
             resolve(emitter);
           } else {
