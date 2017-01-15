@@ -17,9 +17,8 @@ const keepalive = ({ ping, reconnect }) => {
 
   const run = () => {
     const ts = now() - lastPingRx;
-    debug('time since last contact', ts);
     if (ts > 30000) {
-      debug('been too long, pinging');
+      debug('time since last contact', ts, 'pinging');
       ping().then(({time}) => {
         debug('got reply in', time);
         lastPingRx = now();
@@ -29,7 +28,7 @@ const keepalive = ({ ping, reconnect }) => {
         reconnect();
       });
     } else if (ts > 50000) {
-      debug('been too long, reconnecting');
+      debug('time since last contact', ts, 'reconnecting');
       reconnect();
     } else {
       setTimeout(run, 5000);
