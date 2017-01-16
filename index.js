@@ -43,23 +43,22 @@ class App extends MatrixPuppetBridgeBase {
   getServicePrefix() {
     return "groupme";
   }
-  initThirdPartyClient() {
+  createClient() {
+    return new GroupMeClient(this.config.groupme.accessToken);
+  }
+  initThirdPartyClient(client) {
     this.userId = null;
-    this.thirdPartyClient = new GroupMeClient(this.config.groupme.accessToken);
-    return this.thirdPartyClient.connect().then(() => {
-      return this.thirdPartyClient.api.getMe();
+    this.client = client || this.createClient();
+    return this.client.connect().then(() => {
+      return this.client.api.getMe();
     }).then(user => {
       this.userId = user.id;
-      return this.thirdPartyClient.subscribe(`/user/${user.id}`);
+      return this.client.subscribe(`/user/${user.id}`);
     }).then(userSub => {
-
 
       keepalive({
         ping: () => userSub.send({ type: 'ping' }, 30000),
-        reconnect: () => {
-          debug('reconnect issued');
-          this.thirdPartyClient.ws.close();
-        }
+        reconnect: () => this.initThirdPartyClient(this.client)
       });
 
       console.log('Subscribed to GroupMe user messages');
@@ -91,13 +90,13 @@ class App extends MatrixPuppetBridgeBase {
   }
   getThirdPartyRoomDataById(id) {
     if (this.isDirectChat(id)) {
-      return this.thirdPartyClient.api.getChats(id).then(chats=>{
+      return this.client.api.getChats(id).then(chats=>{
         return chats.find(c=>c.last_message.conversation_id === id);
       }).then(chat=>({
         name: chat.other_user.name, topic: 'GroupMe Direct Message'
       }));
     } else {
-      return this.thirdPartyClient.api.showGroup(id).then(data=>({
+      return this.client.api.showGroup(id).then(data=>({
         name: data.name, topic: data.description
       }));
     }
@@ -111,9 +110,9 @@ class App extends MatrixPuppetBridgeBase {
   sendMessageAsPuppetToThirdPartyRoomWithId(id, text) {
     if (this.isDirectChat(id)) {
       const rid = this.getRecipientFromDirectChatId(id);
-      return this.thirdPartyClient.api.sendDirectMessage(rid)(text);
+      return this.client.api.sendDirectMessage(rid)(text);
     } else {
-      return this.thirdPartyClient.api.sendGroupMessage(id)(text);
+      return this.client.api.sendGroupMessage(id)(text);
     }
   }
 }

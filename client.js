@@ -94,6 +94,11 @@ class Client {
     this.channels = {};
   }
   connect() {
+    if ( this.ws ) {
+      debug('closing previous websocket');
+      this.ws.close();
+      this.ws = null;
+    }
     debug('creating websocket');
     this.ws = new WebSocket('wss://push.groupme.com/faye');
     debug('websocket created');
@@ -102,11 +107,6 @@ class Client {
       let ch = this.channels[data.channel];
       debug('got data', data);
       ch ? ch.handle(data) : debug('unhandled message', data);
-    });
-
-    this.ws.on('close', () => {
-      debug('disconnected');
-      this.connect();
     });
 
     return new Promise((resolve, _reject) => {
