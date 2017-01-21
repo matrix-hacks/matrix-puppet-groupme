@@ -1,5 +1,5 @@
 {
-  "name": "matrix-appservice-groupme",
+  "name": "matrix-puppet-groupme",
   "version": "1.0.0",
   "description": "facilitates writing a certain kind of matrix bridge",
   "main": "index.js",
@@ -15,7 +15,7 @@
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kfatehi/matrix-appservice-groupme.git"
+    "url": "https://github.com/kfatehi/matrix-puppet-groupme.git"
   },
   "dependencies": {
     "axios": "^0.15.3",

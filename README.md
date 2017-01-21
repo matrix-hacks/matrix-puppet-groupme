@@ -1,4 +1,4 @@
-# matrix-appservice-groupme
+# matrix-puppet-groupme
 
 This is a Matrix bridge for GroupMe
 
