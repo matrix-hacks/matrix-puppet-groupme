@@ -115,6 +115,9 @@ class App extends MatrixPuppetBridgeBase {
       return this.client.api.sendGroupMessage(id)(text);
     }
   }
+  sendReadReceiptAsPuppetToThirdPartyRoomWithId() {
+    // not available for now
+  }
 }
 
 new Cli({
