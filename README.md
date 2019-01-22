@@ -33,3 +33,7 @@ Edit your homeserver.yaml file and update the `app_service_config_files` with th
 Launch the bridge with ```node index.js```.
 
 Restart your HS.
+
+## Discussion, Help and Support
+
+Join us in [the Matrix Puppet Bridge room](https://riot.im/app/#/room/#matrix-puppet-bridge:matrix.org)
