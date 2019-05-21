@@ -5,8 +5,8 @@
   "registrationPath": "groupme-registration.yaml",
   "port": 8090,
   "bridge": {
-    "homeserverUrl":"https://synapse.keyvan.pw",
-    "domain": "synapse.keyvan.pw",
+    "homeserverUrl":"http://example.domain.com",
+    "domain": "example.domain.com",
     "registration": "groupme-registration.yaml"
   }
 }
