@@ -28,12 +28,7 @@ Copy `config.sample.json` to `config.json` and update it to match your setup
 
 Generate an `groupme-registration.yaml` file with `node index.js -r -u "http://localhost:8090"`
 
-* **IMPORTANT!** Starting in the beginning of 2019, registration files required [non-exclusive aliases](https://github.com/matrix-hacks/matrix-puppet-slack/issues/73). After successfully creating your `groupme-registration` file, edit it to replace `aliases: []` with:
-```
-aliases:
-   -exclusive: false
-    regex: '#groupme_.*'
-```
+Enter the username and password of your user on the Matrix server you entered in the config's `homeserverURL`.
 
 ## Launching the Bridge
 

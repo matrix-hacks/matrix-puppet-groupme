@@ -130,6 +130,7 @@ new Cli({
       reg.setAppServiceToken(AppServiceRegistration.generateToken());
       reg.setSenderLocalpart("groupmebot");
       reg.addRegexPattern("users", "@groupme_.*", true);
+      reg.addRegexPattern("aliases", "#groupme_.*", false);
       callback(reg);
     }).catch(err=>{
       console.error(err.message);
