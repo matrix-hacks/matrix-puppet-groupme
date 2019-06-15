@@ -2,13 +2,13 @@
 
 This is a Matrix bridge for GroupMe
 
-## requirements
+## Requirements
 
 You will need to acquire your Access Token from GroupMe.
 
 * Get your access token by going to https://dev.groupme.com/ and clicking the "Access Token" link in the top right.
 
-## installation
+## Installation
 
 clone this repo
 
@@ -16,15 +16,21 @@ cd into the directory
 
 run `npm install`
 
-## configure
+## Configure
 
 Copy `config.sample.json` to `config.json` and update it to match your setup
 
-## register the app service
+* Place the access token and domain name of your homeserver (or IP address) into the `accessToken` and `homeserverURL` sections respectively, keeping the `" "` around them.
+* The 'registration' setting in the config.json needs to be set to the path of this file. By default, it already is.
+* You do not need to open any ports to bind port 8090. The bridge does it all automatically.
 
-Generate an `groupme-registration.yaml` file with `node index.js -r -u "http://your-bridge-server:8090"`
+## Register the App Service
 
-Note: The 'registration' setting in the config.json needs to set to the path of this file. By default, it already is.
+Generate an `groupme-registration.yaml` file with `node index.js -r -u "http://localhost:8090"`
+
+Enter the username and password of your user on the Matrix server you entered in the config's `homeserverURL`.
+
+## Launching the Bridge
 
 Copy this `groupme-registration.yaml` file to your home server. Make sure that from the perspective of the homeserver, the url is correctly pointing to your bridge server. e.g. `url: 'http://your-bridge-server.example.org:8090'` and is reachable.
 
