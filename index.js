@@ -118,6 +118,10 @@ class App extends MatrixPuppetBridgeBase {
   sendReadReceiptAsPuppetToThirdPartyRoomWithId() {
     // not available for now
   }
+  sendTypingEventAsPuppetToThirdPartyRoomWithId() {
+    // avoiding UnhandledPromiseRejectionWarning:
+  }
+
 }
 
 new Cli({
